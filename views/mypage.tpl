@@ -17,6 +17,7 @@
 
         <div class="pure-u-1 center">
             <a href="/bbs"><button class="pure-button pure-button">みんなの掲示板に行く</button></a>
+            <a href="/os"><button class="pure-button pure-button">商品一覧</button></a>
             <a href="/login"><button class="pure-button pure-button">ログイン画面に戻る</button></a>
             <a href="/logout"><button class="pure-button pure-button">ログアウトする</button></a>
         </div>

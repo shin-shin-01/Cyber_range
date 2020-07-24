@@ -1,5 +1,6 @@
 from bottle import *
 from datetime import datetime
+import subprocess
 
 # Set parameters
 PORT=5000
@@ -58,7 +59,7 @@ def init_user():
     import sqlite3
     conn = sqlite3.connect(DATAFILE)
     c = conn.cursor()
-    sql = "DELETE FROM Uers;"
+    sql = "DELETE FROM Users;"
     c.execute(sql)
     conn.commit()
     conn.close()
@@ -80,13 +81,14 @@ def init_comment():
 
 # Controller routines ------------------------------------------------------------
 
+## function -----------------------
 def error_message(mes):
     if COOKIE_SECURITY == True:
         response.set_cookie('error', mes, secret='key')
     else:
         response.set_cookie('error', mes)
 
-
+## ---------------------------------
 @hook('before_request')
 def before():
     response.headers['Access-Control-Allow-Origin'] = "*"
@@ -288,6 +290,10 @@ def error():
     except:
         message = 'Unknown error'
 
+    if message == "User Does Not Exist":
+        ## クッキーを削除しないと毎回エラーが出るため
+        response.delete_cookie('cookie_id')
+
     return template('error', message=message)
 
 
@@ -312,7 +318,7 @@ def bbs():
 
     return template('bbs', username=username, comments=comments, xss_security=XSS_SECURITY)
 
-@post ('/bbs') # for CSRF
+@post('/bbs') # for CSRF
 def bbs():
 
     if COOKIE_SECURITY != True:
@@ -335,6 +341,41 @@ def bbs():
     Comments.create(user=user, comment=comment, datetime=now)
 
     return template('bbs_posted')
+
+@get('/os') # for OS command injection
+def os():
+    if COOKIE_SECURITY == True:
+        cookie_id = request.get_cookie('cookie_id', secret='key')
+    else:
+        cookie_id = request.get_cookie('cookie_id')
+
+    if cookie_id != None:
+        try:
+            user = Users.get( Users.cookie_id==cookie_id )
+            username = user.username
+        except Users.DoesNotExist:
+            error_message("User Does Not Exist")
+            redirect('/error')
+    else:
+        error_message("CookieID Does Not Exist")
+        redirect('/error')
+    
+    import os
+    categories = os.listdir(path='./static/img/shopping/')
+
+    select_category = request.query.category
+
+    if select_category in categories:
+        pass
+    else:
+        select_category = ''
+
+    results = subprocess.run(f'ls ./static/img/shopping/{select_category}/', shell=True, encoding='utf-8', stdout=subprocess.PIPE)
+    results = results.stdout.replace('.png', '').split()
+
+    
+
+    return template('os', select_category=select_category, results=results, categories=categories)
 
 # Main routine -------------------------------------------------------------------
 if __name__ == '__main__':
